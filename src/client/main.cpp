@@ -337,10 +337,12 @@ void drawScreen(SDL_Window* window, int vbo, int transfoLoc, int colormodeLoc, s
 
   glViewport(0, 0, width, height);
 
+  const float scale = std::min(width / 640.0f, height / 480.0f);
+
   const float orthoMat[4][4] =
   {
-    { 2.0f / width, 0.0f, 0.0f, 0.0f },
-    { 0.0f, -2.0f / height, 0.0f, 0.0f },
+    { 2.0f * scale / width, 0.0f, 0.0f, 0.0f },
+    { 0.0f, -2.0f * scale / height, 0.0f, 0.0f },
     { 0.0f, 0.0f, -1.0f, 0.0f },
     { -1.0f, 1.0f, 0.0f, 1.0f },
   };
@@ -480,6 +482,18 @@ void safeMain(Span<const String> args)
       {
         if(event.type == SDL_QUIT)
           quit = true;
+
+        if(event.type == SDL_KEYDOWN)
+        {
+          if(event.key.keysym.scancode == SDL_SCANCODE_F4 && !event.key.repeat)
+          {
+            static bool fs = false;
+            fs = !fs;
+
+            auto flags = fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+            SDL_SetWindowFullscreen(window, flags);
+          }
+        }
       }
 
       const Uint8* state = SDL_GetKeyboardState(NULL);
