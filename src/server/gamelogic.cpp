@@ -19,13 +19,18 @@ Vec2i round(Vec2f v)
   return Vec2i{ (int)::round(v.x), (int)::round(v.y) };
 }
 
-bool isThereABombHere(GameLogicState& state, Vec2i pos)
+GameLogicState::Bomb* findBombAt(GameLogicState& state, Vec2i pos)
 {
   for(auto& b : state.bombs)
     if(b.enable && round(b.pos) == pos)
-      return true;
+      return &b;
 
-  return false;
+  return nullptr;
+}
+
+bool isThereABombHere(GameLogicState& state, Vec2i pos)
+{
+  return findBombAt(state, pos) != nullptr;
 }
 
 GameLogicState::Bomb* allocBomb(GameLogicState& state)
@@ -92,6 +97,50 @@ int scan(const GameLogicState& state, Vec2i pos, Vec2i dir, int maxSteps)
   return r;
 }
 
+static auto isRectColliding = [] (const GameLogicState& state, Vec2f pos, Vec2f size)
+  {
+    if(!isTraversable(state, pos))
+      return true;
+
+    if(!isTraversable(state, pos + Vec2f(size.x, 0)))
+      return true;
+
+    if(!isTraversable(state, pos + Vec2f(0, size.y)))
+      return true;
+
+    if(!isTraversable(state, pos + size))
+      return true;
+
+    return false;
+  };
+
+static auto sign = [] (float f) { return f ? (f < 0 ? -1.0f : +1.0f) : 0.0f; };
+
+static auto directMove = [] (const GameLogicState& state, Vec2f& pos, Vec2f size, Vec2f delta) -> bool
+  {
+    auto newPos = pos + delta;
+
+    if(isRectColliding(state, newPos - size * 0.5, size))
+      return false;
+
+    for(auto& b : state.bombs)
+    {
+      if(b.enable)
+      {
+        auto newDist = sqrLen(b.pos - newPos);
+
+        if(newDist < 1.0 && sqrLen(b.pos - pos) >= 1.0)
+          return false;
+
+        if(newDist < 0.5 && sqrLen(b.pos - pos) >= 0.5)
+          return false;
+      }
+    }
+
+    pos = newPos;
+    return true;
+  };
+
 void updateBombs(GameLogicState& state, const FlameCoverage& flames)
 {
   for(auto& b : state.bombs)
@@ -99,9 +148,32 @@ void updateBombs(GameLogicState& state, const FlameCoverage& flames)
     if(!b.enable)
       continue;
 
+    {
+      b.enable = false;
+
+      if(!directMove(state, b.pos, Vec2f(0.9, 0.9), b.vel))
+      {
+        b.vel = { 0, 0 };
+        b.pos.x = ::round(b.pos.x);
+        b.pos.y = ::round(b.pos.y);
+      }
+
+      b.enable = true;
+    }
+
     // flame-triggered explosion
     if(b.countdown > 10 && flames.inflames[(int)b.pos.y][(int)b.pos.x])
+    {
       b.countdown = 10;
+    }
+
+    // bomb is exploding
+    if(b.countdown <= 10)
+    {
+      b.vel = { 0, 0 };
+      b.pos.x = ::round(b.pos.x);
+      b.pos.y = ::round(b.pos.y);
+    }
 
     if(b.countdown > 0)
     {
@@ -154,7 +226,7 @@ FlameCoverage computeFlameCoverage(const GameLogicState& state)
           }
         };
 
-      const Vec2i pos0 = { (int)b.pos.x, (int)b.pos.y };
+      const Vec2i pos0 = round(b.pos);
       const int flamelength = state.heroes[b.ownerIndex].flamelength;
       scan(pos0, { 1, 0 }, flamelength);
       scan(pos0, { -1, 0 }, flamelength);
@@ -312,46 +384,24 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
       return r;
     };
 
-  auto isRectColliding = [&] (Vec2f pos, Vec2f size)
+  auto pushMove = [&] (GameLogicState::Hero& h, Vec2f size, Vec2f delta) -> bool
     {
-      if(!isTraversable(state, pos))
-        return true;
+      auto blocked = !directMove(state, h.pos, size, delta);
 
-      if(!isTraversable(state, pos + Vec2f(size.x, 0)))
-        return true;
-
-      if(!isTraversable(state, pos + Vec2f(0, size.y)))
-        return true;
-
-      if(!isTraversable(state, pos + size))
-        return true;
-
-      return false;
-    };
-
-  auto directMove = [&] (Vec2f& pos, Vec2f size, Vec2f delta) -> bool
-    {
-      auto newPos = pos + delta;
-
-      if(isRectColliding(newPos - size * 0.5, size))
-        return false;
-
-      for(auto& b : state.bombs)
+      if(blocked && (h.upgrades & UPGRADE_KICK))
       {
-        if(b.enable)
-        {
-          auto newDist = sqrLen(b.pos - newPos);
+        auto orthonormalize = [] (Vec2f v)
+          {
+            return Vec2f{ sign(v.x), sign(v.y) };
+          };
 
-          if(newDist < 1.0 && sqrLen(b.pos - pos) >= 1.0)
-            return false;
+        auto orthoDelta = orthonormalize(delta);
 
-          if(newDist < 0.5 && sqrLen(b.pos - pos) >= 0.5)
-            return false;
-        }
+        if(auto bomb = findBombAt(state, round(h.pos + delta + orthoDelta * 0.5)))
+          bomb->vel = orthoDelta * 0.3;
       }
 
-      pos = newPos;
-      return true;
+      return !blocked;
     };
 
   auto moveHero = [&] (GameLogicState::Hero& h, PlayerInputState input)
@@ -376,11 +426,9 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
       auto delta = vel * dt;
       auto size = Vec2f(1, 1) * 0.7;
 
-      static auto sign = [] (float f) { return f < 0 ? -1 : +1; };
-
       if(delta.x)
       {
-        if(!directMove(h.pos, size, Vec2f(delta.x, 0)))
+        if(!pushMove(h, size, Vec2f(delta.x, 0)))
         {
           auto topPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, -0.6);
           auto botPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, +0.6);
@@ -390,7 +438,7 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
           if(topClear || botClear)
           {
             auto dy = botClear ? 1 : -1;
-            directMove(h.pos, size, Vec2f(0, speed * dy * dt));
+            pushMove(h, size, Vec2f(0, speed * dy * dt));
           }
         }
 
@@ -399,7 +447,7 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
 
       if(delta.y)
       {
-        if(!directMove(h.pos, size, Vec2f(0, delta.y)))
+        if(!pushMove(h, size, Vec2f(0, delta.y)))
         {
           auto topPos = h.pos + Vec2f(0, delta.y) + Vec2f(-0.6, sign(delta.y) * 0.5);
           auto botPos = h.pos + Vec2f(0, delta.y) + Vec2f(+0.6, sign(delta.y) * 0.5);
@@ -409,7 +457,7 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
           if(topClear || botClear)
           {
             auto dx = botClear ? 1 : -1;
-            directMove(h.pos, size, Vec2f(speed * dx * dt, 0));
+            pushMove(h, size, Vec2f(speed * dx * dt, 0));
           }
         }
 
