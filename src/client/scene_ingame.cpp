@@ -30,6 +30,7 @@ void drawScene(const GameLogicState& state)
       return Vec2f(20, 67) + Vec2f{ pos.x* TS2.x, pos.y* TS2.y };
     };
 
+  // Draw level
   for(int row = 0; row < state.ROWS; ++row)
   {
     for(int col = 0; col < state.COLS; ++col)
@@ -65,6 +66,7 @@ void drawScene(const GameLogicState& state)
     }
   }
 
+  // draw players
   static const Vec4f colors[MAX_HEROES] =
   {
     Vec4f(1, 1, 1, 1),
@@ -106,6 +108,7 @@ void drawScene(const GameLogicState& state)
     }
   }
 
+  // draw bombs
   for(auto& bomb : state.bombs)
   {
     if(!bomb.enable)
@@ -160,7 +163,10 @@ void drawScene(const GameLogicState& state)
     {
       g_Sprites.push_back({});
       Sprite& sprite = g_Sprites.back();
-      sprite.tilenum = 135 + int((sin(GetTicks() * 0.001 * 3.14 * 2) * 0.5 + 0.5) * 9);
+      if(bomb.jelly)
+        sprite.tilenum = 144 + int((sin(GetTicks() * 0.001 * 3.14 * 2) * 0.5 + 0.5) * 6);
+      else
+        sprite.tilenum = 135 + int((sin(GetTicks() * 0.001 * 3.14 * 2) * 0.5 + 0.5) * 9);
       sprite.zorder = 2 + bomb.pos.y / 100.0;
       sprite.pos = transform(bomb.pos + Vec2f(1, 1.5) * 0.5);
       sprite.color = colors[bomb.ownerIndex];

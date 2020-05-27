@@ -37,7 +37,10 @@ GameLogicState::Bomb* allocBomb(GameLogicState& state)
 {
   for(auto& b : state.bombs)
     if(!b.enable)
+    {
+      b = {};
       return &b;
+    }
 
   return nullptr;
 }
@@ -153,9 +156,16 @@ void updateBombs(GameLogicState& state, const FlameCoverage& flames)
 
       if(!directMove(state, b.pos, Vec2f(0.9, 0.9), b.vel))
       {
-        b.vel = { 0, 0 };
-        b.pos.x = ::round(b.pos.x);
-        b.pos.y = ::round(b.pos.y);
+        if(b.jelly)
+        {
+          b.vel = b.vel * -1.0;
+        }
+        else
+        {
+          b.vel = { 0, 0 };
+          b.pos.x = ::round(b.pos.x);
+          b.pos.y = ::round(b.pos.y);
+        }
       }
 
       b.enable = true;
@@ -165,14 +175,6 @@ void updateBombs(GameLogicState& state, const FlameCoverage& flames)
     if(b.countdown > 10 && flames.inflames[(int)b.pos.y][(int)b.pos.x])
     {
       b.countdown = 10;
-    }
-
-    // bomb is exploding
-    if(b.countdown <= 10)
-    {
-      b.vel = { 0, 0 };
-      b.pos.x = ::round(b.pos.x);
-      b.pos.y = ::round(b.pos.y);
     }
 
     if(b.countdown > 0)
@@ -198,6 +200,13 @@ void updateBombs(GameLogicState& state, const FlameCoverage& flames)
         scan(pos0, { -1, 0 }, flamelength);
         scan(pos0, { 0, 1 }, flamelength);
         scan(pos0, { 0, -1 }, flamelength);
+      }
+      else if(b.countdown <= 10)
+      {
+        // bomb starts exploding
+        b.vel = { 0, 0 };
+        b.pos.x = ::round(b.pos.x);
+        b.pos.y = ::round(b.pos.y);
       }
     }
   }
@@ -542,6 +551,8 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
           bomb->pos = { (float)pos.x, (float)pos.y };
           bomb->countdown = 75;
           bomb->ownerIndex = idx;
+          if(h.upgrades & UPGRADE_JELLY)
+            bomb->jelly = 1;
         }
       }
     }

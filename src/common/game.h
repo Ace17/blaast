@@ -83,6 +83,7 @@ struct GameLogicState
     Vec2f vel; // kick, jelly-bomb
     int8_t countdown; // explodes at 10, removed at 0
     int8_t ownerIndex; // hero index, used to fetch properties
+    bool jelly;
     bool enable;
   };
 
