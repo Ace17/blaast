@@ -86,16 +86,9 @@ struct GameLogicState
     bool enable;
   };
 
-  struct Item
-  {
-    uint8_t row, col;
-    uint8_t type;
-    bool enable;
-  };
-
   uint8_t board[ROWS][COLS];
+  uint8_t items[ROWS][COLS];
   Hero heroes[MAX_HEROES];
   Bomb bombs[16];
-  Item items[32];
 };
 

@@ -34,6 +34,15 @@ void drawScene(const GameLogicState& state)
   {
     for(int col = 0; col < state.COLS; ++col)
     {
+      if(state.items[row][col])
+      {
+        g_Sprites.push_back({});
+        Sprite& sprite = g_Sprites.back();
+        sprite.tilenum = 3 + state.items[row][col];
+        sprite.zorder = -0.1;
+        sprite.pos = transform(Vec2f(col, row)) + Vec2f(TS2.x, TS2.y * 2) * 0.5;
+      }
+
       if(state.board[row][col] == 0)
         continue;
 
@@ -157,18 +166,6 @@ void drawScene(const GameLogicState& state)
       sprite.color = colors[bomb.ownerIndex];
       sprite.colormode = 1;
     }
-  }
-
-  for(auto& item : state.items)
-  {
-    if(!item.enable)
-      continue;
-
-    g_Sprites.push_back({});
-    Sprite& sprite = g_Sprites.back();
-    sprite.tilenum = 3 + item.type;
-    sprite.zorder = 2;
-    sprite.pos = transform(Vec2f(item.col, item.row) + Vec2f(1, 2) * 0.5);
   }
 }
 

@@ -5,6 +5,7 @@
 
 namespace
 {
+// server-only state
 PlayerInputState lastInputs[MAX_HEROES];
 int intergameTimer = 0;
 
@@ -32,15 +33,6 @@ GameLogicState::Bomb* allocBomb(GameLogicState& state)
   for(auto& b : state.bombs)
     if(!b.enable)
       return &b;
-
-  return nullptr;
-}
-
-GameLogicState::Item* allocItem(GameLogicState& state)
-{
-  for(auto& i : state.items)
-    if(!i.enable)
-      return &i;
 
   return nullptr;
 }
@@ -125,20 +117,7 @@ void updateBombs(GameLogicState& state, const FlameCoverage& flames)
             auto finalPos = pos + dir * n;
 
             if(n <= maxSteps && isDestroyable(state, finalPos))
-            {
               state.board[finalPos.y][finalPos.x] = 0;
-
-              if(rand() % 3 == 0)
-              {
-                if(auto item = allocItem(state))
-                {
-                  item->enable = 1;
-                  item->row = finalPos.y;
-                  item->col = finalPos.x;
-                  item->type = 1 + rand() % (MAX_ITEM - ITEM_UNDEF);
-                }
-              }
-            }
           };
 
         const Vec2i pos0 = { (int)b.pos.x, (int)b.pos.y };
@@ -251,6 +230,58 @@ GameLogicState initGame()
 
   for(int i = 0; i < 0; ++i)
     clearCross(rand() % state.ROWS, rand() % state.COLS);
+
+  // spawn items
+  {
+    static const int itemCounts[][2] =
+    {
+      { 10, ITEM_BOMB },
+      { 10, ITEM_FLAME },
+      { 3, ITEM_DISEASE },
+      { 4, ITEM_KICK },
+      { 8, ITEM_SKATE },
+      { 2, ITEM_PUNCH },
+      { 2, ITEM_GLOVE },
+      { 1, ITEM_TRIBOMB },
+      { 1, ITEM_JELLY },
+      { -2, ITEM_GOLDFLAME },
+      { -4, ITEM_TRIGGER },
+      { -4, ITEM_EBOLA },
+      { -2, ITEM_RANDOM },
+    };
+
+    for(auto& info : itemCounts)
+    {
+      const int itemType = info[1];
+      int count = info[0];
+
+      if(count < 0)
+      {
+        if(rand() % abs(count) == 0)
+          count = 1;
+        else
+          count = 0;
+      }
+
+      for(int k = 0; k < count; ++k)
+      {
+        int watchdog = 0;
+        Vec2i freePos;
+
+        do
+        {
+          freePos.x = rand() % state.COLS;
+          freePos.y = rand() % state.ROWS;
+
+          if(++watchdog > 1000)
+            break;
+        }
+        while (state.items[freePos.y][freePos.x] || state.board[freePos.y][freePos.x] != 2);
+
+        state.items[freePos.y][freePos.x] = itemType;
+      }
+    }
+  }
 
   return state;
 }
@@ -401,52 +432,45 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
 
     auto roundPos = round(h.pos);
 
-    for(auto& i : state.items)
     {
-      if(!i.enable)
-        continue;
-
-      auto ipos = Vec2i{ i.col, i.row };
-
-      if(roundPos == ipos)
+      const int itemType = state.items[roundPos.y][roundPos.x];
+      switch(itemType)
       {
-        i.enable = false;
-        switch(i.type)
-        {
-        case ITEM_DISEASE:
-          break;
-        case ITEM_KICK:
-          h.upgrades |= UPGRADE_KICK;
-          break;
-        case ITEM_FLAME:
-          h.flamelength = std::min(h.flamelength + 1, 15);
-          break;
-        case ITEM_PUNCH:
-          h.upgrades |= UPGRADE_PUNCH;
-          break;
-        case ITEM_SKATE:
-          h.walkspeed = std::min(h.walkspeed + 1, 15);
-          break;
-        case ITEM_BOMB:
-          h.maxbombs = std::min(h.maxbombs + 1, 15);
-          break;
-        case ITEM_TRIBOMB:
-          h.upgrades |= UPGRADE_TRIBOMB;
-          break;
-        case ITEM_GOLDFLAME:
-          h.flamelength = 15;
-          break;
-        case ITEM_EBOLA: break;
-        case ITEM_TRIGGER: break;
-        case ITEM_RANDOM: break;
-        case ITEM_JELLY:
-          h.upgrades |= UPGRADE_JELLY;
-          break;
-        case ITEM_GLOVE:
-          h.upgrades |= UPGRADE_GLOVE;
-          break;
-        }
+      case ITEM_DISEASE:
+        break;
+      case ITEM_KICK:
+        h.upgrades |= UPGRADE_KICK;
+        break;
+      case ITEM_FLAME:
+        h.flamelength = std::min(h.flamelength + 1, 15);
+        break;
+      case ITEM_PUNCH:
+        h.upgrades |= UPGRADE_PUNCH;
+        break;
+      case ITEM_SKATE:
+        h.walkspeed = std::min(h.walkspeed + 1, 15);
+        break;
+      case ITEM_BOMB:
+        h.maxbombs = std::min(h.maxbombs + 1, 15);
+        break;
+      case ITEM_TRIBOMB:
+        h.upgrades |= UPGRADE_TRIBOMB;
+        break;
+      case ITEM_GOLDFLAME:
+        h.flamelength = 15;
+        break;
+      case ITEM_EBOLA: break;
+      case ITEM_TRIGGER: break;
+      case ITEM_RANDOM: break;
+      case ITEM_JELLY:
+        h.upgrades |= UPGRADE_JELLY;
+        break;
+      case ITEM_GLOVE:
+        h.upgrades |= UPGRADE_GLOVE;
+        break;
       }
+
+      state.items[roundPos.y][roundPos.x] = 0;
     }
 
     if(flames.inflames[roundPos.y][roundPos.x])
