@@ -144,6 +144,186 @@ static auto directMove = [] (const GameLogicState& state, Vec2f& pos, Vec2f size
     return true;
   };
 
+void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInputState inputs[MAX_HEROES])
+{
+  auto activeBombCount = [&] (int heroIdx)
+    {
+      int r = 0;
+
+      for(auto& b : state.bombs)
+        if(b.enable && b.ownerIndex == heroIdx)
+          r++;
+
+      return r;
+    };
+
+  auto pushMove = [&] (GameLogicState::Hero& h, Vec2f size, Vec2f delta) -> bool
+    {
+      auto blocked = !directMove(state, h.pos, size, delta);
+
+      if(blocked && (h.upgrades & UPGRADE_KICK))
+      {
+        auto orthonormalize = [] (Vec2f v)
+          {
+            return Vec2f{ sign(v.x), sign(v.y) };
+          };
+
+        auto orthoDelta = orthonormalize(delta);
+
+        if(auto bomb = findBombAt(state, round(h.pos + delta + orthoDelta * 0.5)))
+          bomb->vel = orthoDelta * 0.3;
+      }
+
+      return !blocked;
+    };
+
+  auto moveHero = [&] (GameLogicState::Hero& h, PlayerInputState input)
+    {
+      auto speed = 3.0 + h.walkspeed * 0.3;
+
+      Vec2f vel = Vec2f::zero();
+
+      if(input.left)
+        vel.x -= speed;
+
+      if(input.right)
+        vel.x += speed;
+
+      if(input.up)
+        vel.y -= speed;
+
+      if(input.down)
+        vel.y += speed;
+
+      auto dt = (GamePeriodMs / 1000.0f);
+      auto delta = vel * dt;
+      auto size = Vec2f(1, 1) * 0.7;
+
+      if(delta.x)
+      {
+        if(!pushMove(h, size, Vec2f(delta.x, 0)))
+        {
+          auto topPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, -0.6);
+          auto botPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, +0.6);
+          bool topClear = isTraversable(state, topPos);
+          bool botClear = isTraversable(state, botPos);
+
+          if(topClear || botClear)
+          {
+            auto dy = botClear ? 1 : -1;
+            pushMove(h, size, Vec2f(0, speed * dy * dt));
+          }
+        }
+
+        h.orientation = delta.x > 0 ? 0 : 2;
+      }
+
+      if(delta.y)
+      {
+        if(!pushMove(h, size, Vec2f(0, delta.y)))
+        {
+          auto topPos = h.pos + Vec2f(0, delta.y) + Vec2f(-0.6, sign(delta.y) * 0.5);
+          auto botPos = h.pos + Vec2f(0, delta.y) + Vec2f(+0.6, sign(delta.y) * 0.5);
+          bool topClear = isTraversable(state, topPos);
+          bool botClear = isTraversable(state, botPos);
+
+          if(topClear || botClear)
+          {
+            auto dx = botClear ? 1 : -1;
+            pushMove(h, size, Vec2f(speed * dx * dt, 0));
+          }
+        }
+
+        h.orientation = delta.y > 0 ? 1 : 3;
+      }
+    };
+
+  int survivorCount = 0;
+
+  for(auto& h : state.heroes)
+  {
+    if(!h.enable || h.dead)
+      continue;
+
+    survivorCount++;
+
+    const int idx = int(&h - state.heroes);
+    const auto& input = inputs[idx];
+    const auto& prevInput = lastInputs[idx];
+
+    auto roundPos = round(h.pos);
+
+    {
+      const int itemType = state.items[roundPos.y][roundPos.x];
+      switch(itemType)
+      {
+      case ITEM_DISEASE:
+        break;
+      case ITEM_KICK:
+        h.upgrades |= UPGRADE_KICK;
+        break;
+      case ITEM_FLAME:
+        h.flamelength = std::min(h.flamelength + 1, 15);
+        break;
+      case ITEM_PUNCH:
+        h.upgrades |= UPGRADE_PUNCH;
+        break;
+      case ITEM_SKATE:
+        h.walkspeed = std::min(h.walkspeed + 1, 15);
+        break;
+      case ITEM_BOMB:
+        h.maxbombs = std::min(h.maxbombs + 1, 15);
+        break;
+      case ITEM_TRIBOMB:
+        h.upgrades |= UPGRADE_TRIBOMB;
+        break;
+      case ITEM_GOLDFLAME:
+        h.flamelength = 15;
+        break;
+      case ITEM_EBOLA: break;
+      case ITEM_TRIGGER: break;
+      case ITEM_RANDOM: break;
+      case ITEM_JELLY:
+        h.upgrades |= UPGRADE_JELLY;
+        break;
+      case ITEM_GLOVE:
+        h.upgrades |= UPGRADE_GLOVE;
+        break;
+      }
+
+      state.items[roundPos.y][roundPos.x] = 0;
+    }
+
+    if(flames.inflames[roundPos.y][roundPos.x])
+    {
+      printf("Killed!\n");
+      h.dead = true;
+      continue;
+    }
+
+    moveHero(h, input);
+
+    if(input.dropBomb && !prevInput.dropBomb && activeBombCount(idx) < h.maxbombs)
+    {
+      auto pos = round(h.pos);
+
+      if(!isThereABombHere(state, pos))
+      {
+        if(auto bomb = allocBomb(state))
+        {
+          bomb->enable = true;
+          bomb->pos = { (float)pos.x, (float)pos.y };
+          bomb->countdown = 75;
+          bomb->ownerIndex = idx;
+
+          if(h.upgrades & UPGRADE_JELLY)
+            bomb->jelly = 1;
+        }
+      }
+    }
+  }
+}
+
 void updateBombs(GameLogicState& state, const FlameCoverage& flames)
 {
   for(auto& b : state.bombs)
@@ -382,189 +562,24 @@ GameLogicState advanceGameLogic(GameLogicState state, PlayerInputState inputs[MA
 
   auto const flames = computeFlameCoverage(state);
 
-  auto activeBombCount = [&] (int heroIdx)
-    {
-      int r = 0;
-
-      for(auto& b : state.bombs)
-        if(b.enable && b.ownerIndex == heroIdx)
-          r++;
-
-      return r;
-    };
-
-  auto pushMove = [&] (GameLogicState::Hero& h, Vec2f size, Vec2f delta) -> bool
-    {
-      auto blocked = !directMove(state, h.pos, size, delta);
-
-      if(blocked && (h.upgrades & UPGRADE_KICK))
-      {
-        auto orthonormalize = [] (Vec2f v)
-          {
-            return Vec2f{ sign(v.x), sign(v.y) };
-          };
-
-        auto orthoDelta = orthonormalize(delta);
-
-        if(auto bomb = findBombAt(state, round(h.pos + delta + orthoDelta * 0.5)))
-          bomb->vel = orthoDelta * 0.3;
-      }
-
-      return !blocked;
-    };
-
-  auto moveHero = [&] (GameLogicState::Hero& h, PlayerInputState input)
-    {
-      auto speed = 3.0 + h.walkspeed * 0.3;
-
-      Vec2f vel = Vec2f::zero();
-
-      if(input.left)
-        vel.x -= speed;
-
-      if(input.right)
-        vel.x += speed;
-
-      if(input.up)
-        vel.y -= speed;
-
-      if(input.down)
-        vel.y += speed;
-
-      auto dt = (GamePeriodMs / 1000.0f);
-      auto delta = vel * dt;
-      auto size = Vec2f(1, 1) * 0.7;
-
-      if(delta.x)
-      {
-        if(!pushMove(h, size, Vec2f(delta.x, 0)))
-        {
-          auto topPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, -0.6);
-          auto botPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, +0.6);
-          bool topClear = isTraversable(state, topPos);
-          bool botClear = isTraversable(state, botPos);
-
-          if(topClear || botClear)
-          {
-            auto dy = botClear ? 1 : -1;
-            pushMove(h, size, Vec2f(0, speed * dy * dt));
-          }
-        }
-
-        h.orientation = delta.x > 0 ? 0 : 2;
-      }
-
-      if(delta.y)
-      {
-        if(!pushMove(h, size, Vec2f(0, delta.y)))
-        {
-          auto topPos = h.pos + Vec2f(0, delta.y) + Vec2f(-0.6, sign(delta.y) * 0.5);
-          auto botPos = h.pos + Vec2f(0, delta.y) + Vec2f(+0.6, sign(delta.y) * 0.5);
-          bool topClear = isTraversable(state, topPos);
-          bool botClear = isTraversable(state, botPos);
-
-          if(topClear || botClear)
-          {
-            auto dx = botClear ? 1 : -1;
-            pushMove(h, size, Vec2f(speed * dx * dt, 0));
-          }
-        }
-
-        h.orientation = delta.y > 0 ? 1 : 3;
-      }
-    };
-
-  int survivorCount = 0;
-
-  for(auto& h : state.heroes)
-  {
-    if(!h.enable || h.dead)
-      continue;
-
-    survivorCount++;
-
-    const int idx = int(&h - state.heroes);
-    const auto& input = inputs[idx];
-    const auto& prevInput = lastInputs[idx];
-
-    auto roundPos = round(h.pos);
-
-    {
-      const int itemType = state.items[roundPos.y][roundPos.x];
-      switch(itemType)
-      {
-      case ITEM_DISEASE:
-        break;
-      case ITEM_KICK:
-        h.upgrades |= UPGRADE_KICK;
-        break;
-      case ITEM_FLAME:
-        h.flamelength = std::min(h.flamelength + 1, 15);
-        break;
-      case ITEM_PUNCH:
-        h.upgrades |= UPGRADE_PUNCH;
-        break;
-      case ITEM_SKATE:
-        h.walkspeed = std::min(h.walkspeed + 1, 15);
-        break;
-      case ITEM_BOMB:
-        h.maxbombs = std::min(h.maxbombs + 1, 15);
-        break;
-      case ITEM_TRIBOMB:
-        h.upgrades |= UPGRADE_TRIBOMB;
-        break;
-      case ITEM_GOLDFLAME:
-        h.flamelength = 15;
-        break;
-      case ITEM_EBOLA: break;
-      case ITEM_TRIGGER: break;
-      case ITEM_RANDOM: break;
-      case ITEM_JELLY:
-        h.upgrades |= UPGRADE_JELLY;
-        break;
-      case ITEM_GLOVE:
-        h.upgrades |= UPGRADE_GLOVE;
-        break;
-      }
-
-      state.items[roundPos.y][roundPos.x] = 0;
-    }
-
-    if(flames.inflames[roundPos.y][roundPos.x])
-    {
-      printf("Killed!\n");
-      h.dead = true;
-      continue;
-    }
-
-    moveHero(h, input);
-
-    if(input.dropBomb && !prevInput.dropBomb && activeBombCount(idx) < h.maxbombs)
-    {
-      auto pos = round(h.pos);
-
-      if(!isThereABombHere(state, pos))
-      {
-        if(auto bomb = allocBomb(state))
-        {
-          bomb->enable = true;
-          bomb->pos = { (float)pos.x, (float)pos.y };
-          bomb->countdown = 75;
-          bomb->ownerIndex = idx;
-          if(h.upgrades & UPGRADE_JELLY)
-            bomb->jelly = 1;
-        }
-      }
-    }
-  }
-
-  if(survivorCount <= 1)
-  {
-    printf("Game over!\n");
-    intergameTimer = 30;
-  }
-
+  updateHeroes(state, flames, inputs);
   updateBombs(state, flames);
+
+  {
+    int survivorCount = 0;
+
+    for(auto& h : state.heroes)
+    {
+      if(h.enable && !h.dead)
+        ++survivorCount;
+    }
+
+    if(survivorCount <= 1)
+    {
+      printf("Game over!\n");
+      intergameTimer = 30;
+    }
+  }
 
   memcpy(lastInputs, inputs, sizeof lastInputs);
   return state;

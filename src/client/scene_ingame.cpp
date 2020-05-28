@@ -163,10 +163,12 @@ void drawScene(const GameLogicState& state)
     {
       g_Sprites.push_back({});
       Sprite& sprite = g_Sprites.back();
+
       if(bomb.jelly)
         sprite.tilenum = 144 + int((sin(GetTicks() * 0.001 * 3.14 * 2) * 0.5 + 0.5) * 6);
       else
         sprite.tilenum = 135 + int((sin(GetTicks() * 0.001 * 3.14 * 2) * 0.5 + 0.5) * 9);
+
       sprite.zorder = 2 + bomb.pos.y / 100.0;
       sprite.pos = transform(bomb.pos + Vec2f(1, 1.5) * 0.5);
       sprite.color = colors[bomb.ownerIndex];
