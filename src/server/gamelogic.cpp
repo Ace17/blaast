@@ -100,49 +100,50 @@ int scan(const GameLogicState& state, Vec2i pos, Vec2i dir, int maxSteps)
   return r;
 }
 
-static auto isRectColliding = [] (const GameLogicState& state, Vec2f pos, Vec2f size)
-  {
-    if(!isTraversable(state, pos))
-      return true;
-
-    if(!isTraversable(state, pos + Vec2f(size.x, 0)))
-      return true;
-
-    if(!isTraversable(state, pos + Vec2f(0, size.y)))
-      return true;
-
-    if(!isTraversable(state, pos + size))
-      return true;
-
-    return false;
-  };
-
-static auto sign = [] (float f) { return f ? (f < 0 ? -1.0f : +1.0f) : 0.0f; };
-
-static auto directMove = [] (const GameLogicState& state, Vec2f& pos, Vec2f size, Vec2f delta) -> bool
-  {
-    auto newPos = pos + delta;
-
-    if(isRectColliding(state, newPos - size * 0.5, size))
-      return false;
-
-    for(auto& b : state.bombs)
-    {
-      if(b.enable)
-      {
-        auto newDist = sqrLen(b.pos - newPos);
-
-        if(newDist < 1.0 && sqrLen(b.pos - pos) >= 1.0)
-          return false;
-
-        if(newDist < 0.5 && sqrLen(b.pos - pos) >= 0.5)
-          return false;
-      }
-    }
-
-    pos = newPos;
+bool isRectColliding(const GameLogicState& state, Vec2f pos, Vec2f size)
+{
+  if(!isTraversable(state, pos))
     return true;
-  };
+
+  if(!isTraversable(state, pos + Vec2f(size.x, 0)))
+    return true;
+
+  if(!isTraversable(state, pos + Vec2f(0, size.y)))
+    return true;
+
+  if(!isTraversable(state, pos + size))
+    return true;
+
+  return false;
+}
+
+float sign(float f)
+{ return f ? (f < 0 ? -1.0f : +1.0f) : 0.0f; }
+
+bool directMove(const GameLogicState& state, Vec2f& pos, Vec2f size, Vec2f delta)
+{
+  auto newPos = pos + delta;
+
+  if(isRectColliding(state, newPos - size * 0.5, size))
+    return false;
+
+  for(auto& b : state.bombs)
+  {
+    if(b.enable)
+    {
+      auto newDist = sqrLen(b.pos - newPos);
+
+      if(newDist < 1.0 && sqrLen(b.pos - pos) >= 1.0)
+        return false;
+
+      if(newDist < 0.5 && sqrLen(b.pos - pos) >= 0.5)
+        return false;
+    }
+  }
+
+  pos = newPos;
+  return true;
+}
 
 void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInputState inputs[MAX_HEROES])
 {
