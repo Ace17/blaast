@@ -60,7 +60,7 @@ struct Server : ITickable
 {
   Server(Socket& sock_) : sock(sock_), state(initGame())
   {
-    printf("State packet size: %d\n", sizeof(PacketState));
+    printf("State packet size: %d\n", (int)sizeof(PacketState));
   }
 
   static constexpr int MAX_WATCHDOG = 200;

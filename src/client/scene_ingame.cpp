@@ -86,8 +86,6 @@ void drawScene(const GameLogicState& state)
 
     const int idx = int(&hero - state.heroes);
 
-    auto color = colors[idx];
-
     const int permute[] = { 0, 2, 3, 1 };
     g_Sprites.push_back({});
     Sprite& sprite = g_Sprites.back();

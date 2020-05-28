@@ -394,6 +394,7 @@ Picture decodePcx(Span<const uint8_t> s)
   const int height_minus1 = readLE(s, 2);
   const int Hres = readLE(s, 2);
   const int Vres = readLE(s, 2);
+  (void)Hres, (void)Vres;
 
   s += 16 * 3; // skip colormap
 

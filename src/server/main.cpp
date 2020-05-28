@@ -16,6 +16,7 @@
 
 void safeMain(Span<const String> args)
 {
+  (void)args;
   Socket sock(ServerUdpPort);
   printf("Server listening on: udp/%d\n", sock.port());
 

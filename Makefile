@@ -14,6 +14,8 @@ $(BIN)/client.exe: LDFLAGS+=$(shell pkg-config sdl2 --libs)
 
 CXXFLAGS+=-O3
 
+CXXFLAGS+=-Wall -Wextra -Werror
+
 HOST:=$(shell $(CXX) -dumpmachine | sed 's/.*-//')
 
 all: all_targets
