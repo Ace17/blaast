@@ -347,7 +347,7 @@ void drawScreen(SDL_Window* window, int vbo, int transfoLoc, int colormodeLoc, s
     { -1.0f, 1.0f, 0.0f, 1.0f },
   };
 
-  glUniformMatrix4fv(transfoLoc, 1, GL_FALSE, &orthoMat[0][0]);
+  SAFE_GL(glUniformMatrix4fv(transfoLoc, 1, GL_FALSE, &orthoMat[0][0]));
 
   SAFE_GL(glEnableVertexAttribArray(attrib_position));
   SAFE_GL(glVertexAttribPointer(attrib_position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos)));
