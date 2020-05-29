@@ -38,6 +38,7 @@ function deliverBinaryVersion
   cp /opt/envs/win64/bin/SDL2.dll                                    $tmpDir/$N
 
   # GNU/Linux binaries
+  CXXFLAGS="-include extra/glibc_version.h" \
   BIN=$tmpDir/bin/gnu \
     make -j`nproc` >/dev/null
 
