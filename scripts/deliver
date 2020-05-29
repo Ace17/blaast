@@ -47,7 +47,7 @@ function deliverBinaryVersion
   strip -s $tmpDir/$N/*.{exe,dll,x86_64}
 
   # Compress executables
-  upx $tmpDir/$N/*.{exe,x86_64}
+  upx $tmpDir/$N/*.{exe,dll,x86_64}
 
   # Copy data
   cp -a data $tmpDir/$N/data
