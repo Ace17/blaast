@@ -28,11 +28,6 @@ GameLogicState::Bomb* findBombAt(GameLogicState& state, Vec2i pos)
   return nullptr;
 }
 
-bool isThereABombHere(GameLogicState& state, Vec2i pos)
-{
-  return findBombAt(state, pos) != nullptr;
-}
-
 GameLogicState::Bomb* allocBomb(GameLogicState& state)
 {
   for(auto& b : state.bombs)
@@ -314,7 +309,7 @@ void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInpu
     {
       auto pos = round(h.pos);
 
-      if(!isThereABombHere(state, pos))
+      if(!findBombAt(state, pos))
       {
         if(auto bomb = allocBomb(state))
         {
