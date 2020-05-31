@@ -204,15 +204,18 @@ void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInpu
       {
         if(!pushMove(h, size, Vec2f(delta.x, 0)))
         {
-          auto topPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, -0.6);
-          auto botPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, +0.6);
-          bool topClear = isTraversable(state, topPos);
-          bool botClear = isTraversable(state, botPos);
-
-          if(topClear || botClear)
+          if(delta.y == 0)
           {
-            auto dy = botClear ? 1 : -1;
-            pushMove(h, size, Vec2f(0, speed * dy * dt));
+            auto topPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, -0.6);
+            auto botPos = h.pos + Vec2f(delta.x, 0) + Vec2f(sign(delta.x) * 0.5, +0.6);
+            bool topClear = isTraversable(state, topPos);
+            bool botClear = isTraversable(state, botPos);
+
+            if(topClear || botClear)
+            {
+              auto dy = botClear ? 1 : -1;
+              pushMove(h, size, Vec2f(0, speed * dy * dt));
+            }
           }
         }
 
@@ -223,15 +226,18 @@ void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInpu
       {
         if(!pushMove(h, size, Vec2f(0, delta.y)))
         {
-          auto topPos = h.pos + Vec2f(0, delta.y) + Vec2f(-0.6, sign(delta.y) * 0.5);
-          auto botPos = h.pos + Vec2f(0, delta.y) + Vec2f(+0.6, sign(delta.y) * 0.5);
-          bool topClear = isTraversable(state, topPos);
-          bool botClear = isTraversable(state, botPos);
-
-          if(topClear || botClear)
+          if(delta.x == 0)
           {
-            auto dx = botClear ? 1 : -1;
-            pushMove(h, size, Vec2f(speed * dx * dt, 0));
+            auto topPos = h.pos + Vec2f(0, delta.y) + Vec2f(-0.6, sign(delta.y) * 0.5);
+            auto botPos = h.pos + Vec2f(0, delta.y) + Vec2f(+0.6, sign(delta.y) * 0.5);
+            bool topClear = isTraversable(state, topPos);
+            bool botClear = isTraversable(state, botPos);
+
+            if(topClear || botClear)
+            {
+              auto dx = botClear ? 1 : -1;
+              pushMove(h, size, Vec2f(speed * dx * dt, 0));
+            }
           }
         }
 
