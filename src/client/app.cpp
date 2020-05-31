@@ -44,7 +44,9 @@ void AppInit(Span<const String> args)
     throw std::runtime_error("Invalid command line");
   }
 
-  g_address = Address::build(args[1].data, ServerUdpPort);
+  const auto host = args[1];
+  g_address = Socket::resolve(host, ServerUdpPort);
+  printf("Connecting to: %.*s (%s)\n", host.len, host.data, g_address.toString().c_str());
 
   sendKeepAlive();
 }

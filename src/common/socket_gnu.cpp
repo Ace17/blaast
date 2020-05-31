@@ -2,8 +2,10 @@
 
 #include <arpa/inet.h> // inet_addr
 #include <assert.h>
-#include <fcntl.h>
+#include <fcntl.h> // F_SETFL, O_NONBLOCK
 #include <unistd.h> // close
+#include <string.h> // memcpy
+#include <netdb.h> // addrinfo
 
 #include <stdexcept>
 #include <string>
@@ -105,5 +107,47 @@ int Socket::port() const
   }
 
   return ntohs(sin.sin_port);
+}
+
+Address Socket::resolve(String hostname, int port)
+{
+  Address r {};
+
+  addrinfo hints {};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_DGRAM;
+
+  char zeroTerminatedHostName[256] {};
+  memcpy(zeroTerminatedHostName, hostname.data, hostname.len);
+  zeroTerminatedHostName[hostname.len] = 0;
+
+  addrinfo* result;
+  int s = getaddrinfo(zeroTerminatedHostName, nullptr, &hints, &result);
+
+  if(s == -2)
+    throw std::runtime_error("failed to resolve " + std::string(zeroTerminatedHostName));
+
+  if(s != 0)
+    printf("getaddrinfo returned error %d : %s\n", s, gai_strerror(s));
+
+  assert(s == 0);
+
+  auto p = result;
+
+  while(p)
+  {
+    if(p->ai_family == AF_INET)
+    {
+      auto ipv4 = (sockaddr_in*)p->ai_addr;
+
+      r = { ntohl(ipv4->sin_addr.s_addr), port };
+    }
+
+    p = p->ai_next;
+  }
+
+  freeaddrinfo(p);
+
+  return r;
 }
 
