@@ -38,13 +38,7 @@ void sendKeepAlive()
 
 void AppInit(Span<const String> args)
 {
-  if(args.len != 2)
-  {
-    fprintf(stderr, "Usage: %.*s <host>\n", args[0].len, args[0].data);
-    throw std::runtime_error("Invalid command line");
-  }
-
-  const auto host = args[1];
+  const auto host = args.len == 2 ? args[1] : "code.alaiwan.org";
   g_address = Socket::resolve(host, ServerUdpPort);
   printf("Connecting to: %.*s (%s)\n", host.len, host.data, g_address.toString().c_str());
 
