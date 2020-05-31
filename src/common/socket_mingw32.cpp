@@ -43,30 +43,30 @@ Socket::~Socket()
   WSACleanup();
 }
 
-void Socket::send(Address dstAddr, const void* packet_data, int packet_size)
+void Socket::send(Address dstAddr, Span<const uint8_t> packet)
 {
   sockaddr_in addr {};
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(dstAddr.address);
   addr.sin_port = htons(dstAddr.port);
 
-  int sent_bytes = sendto(m_sock, (const char*)packet_data, packet_size, 0, (sockaddr*)&addr, sizeof(sockaddr_in));
+  int sent_bytes = sendto(m_sock, (const char*)packet.data, packet.len, 0, (sockaddr*)&addr, sizeof(sockaddr_in));
 
-  if(sent_bytes != packet_size)
+  if(sent_bytes != packet.len)
   {
     printf("failed to send packet\n");
     assert(0);
   }
 }
 
-int Socket::recv(Address& sender, void* packet_data, int max_packet_size)
+int Socket::recv(Address& sender, Span<uint8_t> buffer)
 {
   sockaddr_in from;
   int fromLength = sizeof(from);
 
   int bytes = recvfrom(m_sock,
-                       (char*)packet_data,
-                       max_packet_size,
+                       (char*)buffer.data,
+                       buffer.len,
                        0,
                        (sockaddr*)&from,
                        &fromLength);

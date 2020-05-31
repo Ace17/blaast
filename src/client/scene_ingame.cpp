@@ -238,7 +238,7 @@ SceneFuncStruct sceneIngame(SteamGui* ui)
   {
     uint8_t buffer[2048];
     Address unused;
-    int n = g_sock.recv(unused, buffer, sizeof buffer);
+    int n = g_sock.recv(unused, buffer);
 
     if(n == 0)
       break;

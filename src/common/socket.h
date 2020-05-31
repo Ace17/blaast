@@ -12,8 +12,8 @@ public:
   Socket(int port);
   ~Socket();
 
-  void send(Address dstAddr, const void* packet_data, int packet_size);
-  int recv(Address& sender, void* packet_data, int max_packet_size);
+  void send(Address dstAddr, Span<const uint8_t> packet);
+  int recv(Address& sender, Span<uint8_t> buffer);
   int port() const;
 
   static Address resolve(String hostname, int port);

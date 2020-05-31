@@ -89,7 +89,7 @@ struct Server : ITickable
     for(auto& player : session.players)
     {
       static_assert(std::is_standard_layout<decltype(pkt)>::value);
-      sock.send(player.address, &pkt, sizeof pkt);
+      sock.send(player.address, { (const uint8_t*)&pkt, int(sizeof pkt) });
       player.watchdog++;
 
       if(player.watchdog > MAX_WATCHDOG / 2)
@@ -107,7 +107,7 @@ private:
   {
     uint8_t buf[2048];
     Address from;
-    int n = sock.recv(from, buf, sizeof buf);
+    int n = sock.recv(from, buf);
 
     if(n == 0)
       return false;

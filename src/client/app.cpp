@@ -25,7 +25,7 @@ SceneFuncStruct g_currScene { &sceneIngame };
 template<typename T>
 void sendPacket(const T& pkt)
 {
-  g_sock.send(g_address, &pkt, sizeof pkt);
+  g_sock.send(g_address, { (const uint8_t*)&pkt, int(sizeof pkt) });
   lastSentPacketDate = GetTicks();
 }
 
@@ -49,7 +49,7 @@ void AppExit()
 {
   {
     const uint8_t pkt[] = { Op::Disconnect };
-    g_sock.send(g_address, pkt, sizeof pkt);
+    g_sock.send(g_address, pkt);
   }
 }
 
