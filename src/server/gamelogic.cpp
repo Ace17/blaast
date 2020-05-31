@@ -431,6 +431,58 @@ FlameCoverage computeFlameCoverage(const GameLogicState& state)
 
   return r;
 }
+
+void putRandomItems(GameLogicState& state)
+{
+  static const int itemCounts[][2] =
+  {
+    { 10, ITEM_BOMB },
+    { 10, ITEM_FLAME },
+    { 3, ITEM_DISEASE },
+    { 4, ITEM_KICK },
+    { 8, ITEM_SKATE },
+    { 2, ITEM_PUNCH },
+    { 2, ITEM_GLOVE },
+    { 1, ITEM_TRIBOMB },
+    { 1, ITEM_JELLY },
+    { -2, ITEM_GOLDFLAME },
+    { -4, ITEM_TRIGGER },
+    { -4, ITEM_EBOLA },
+    { -2, ITEM_RANDOM },
+  };
+
+  for(auto& info : itemCounts)
+  {
+    const int itemType = info[1];
+    int count = info[0];
+
+    if(count < 0)
+    {
+      if(rand() % abs(count) == 0)
+        count = 1;
+      else
+        count = 0;
+    }
+
+    for(int k = 0; k < count; ++k)
+    {
+      int watchdog = 0;
+      Vec2i freePos;
+
+      do
+      {
+        freePos.x = rand() % state.COLS;
+        freePos.y = rand() % state.ROWS;
+
+        if(++watchdog > 1000)
+          break;
+      }
+      while (state.items[freePos.y][freePos.x] || state.board[freePos.y][freePos.x] != 2);
+
+      state.items[freePos.y][freePos.x] = itemType;
+    }
+  }
+}
 }
 
 GameLogicState initGame()
@@ -497,57 +549,7 @@ GameLogicState initGame()
   for(int i = 0; i < 0; ++i)
     clearCross(rand() % state.ROWS, rand() % state.COLS);
 
-  // spawn items
-  {
-    static const int itemCounts[][2] =
-    {
-      { 10, ITEM_BOMB },
-      { 10, ITEM_FLAME },
-      { 3, ITEM_DISEASE },
-      { 4, ITEM_KICK },
-      { 8, ITEM_SKATE },
-      { 2, ITEM_PUNCH },
-      { 2, ITEM_GLOVE },
-      { 1, ITEM_TRIBOMB },
-      { 1, ITEM_JELLY },
-      { -2, ITEM_GOLDFLAME },
-      { -4, ITEM_TRIGGER },
-      { -4, ITEM_EBOLA },
-      { -2, ITEM_RANDOM },
-    };
-
-    for(auto& info : itemCounts)
-    {
-      const int itemType = info[1];
-      int count = info[0];
-
-      if(count < 0)
-      {
-        if(rand() % abs(count) == 0)
-          count = 1;
-        else
-          count = 0;
-      }
-
-      for(int k = 0; k < count; ++k)
-      {
-        int watchdog = 0;
-        Vec2i freePos;
-
-        do
-        {
-          freePos.x = rand() % state.COLS;
-          freePos.y = rand() % state.ROWS;
-
-          if(++watchdog > 1000)
-            break;
-        }
-        while (state.items[freePos.y][freePos.x] || state.board[freePos.y][freePos.x] != 2);
-
-        state.items[freePos.y][freePos.x] = itemType;
-      }
-    }
-  }
+  putRandomItems(state);
 
   return state;
 }
