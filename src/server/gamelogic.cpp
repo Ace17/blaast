@@ -489,23 +489,7 @@ GameLogicState initGame()
 {
   GameLogicState state {};
 
-  const Vec2f startingPositions[MAX_HEROES] =
-  {
-    { 0, 0 },
-    { state.COLS - 1, 0 },
-    { state.COLS - 1, state.ROWS - 1 },
-    { 0, state.ROWS - 1 },
-  };
-
-  for(int i = 0; i < 4; ++i)
-  {
-    state.heroes[i].enable = true;
-    state.heroes[i].maxbombs = 1;
-    state.heroes[i].pos = startingPositions[i];
-    state.heroes[i].walkspeed = 2;
-    state.heroes[i].flamelength = 2;
-  }
-
+  // Fill map with bricks
   for(int row = 0; row < state.ROWS; ++row)
   {
     for(int col = 0; col < state.COLS; ++col)
@@ -517,37 +501,51 @@ GameLogicState initGame()
     }
   }
 
-  auto maybeClear = [&] (int row, int col)
+  // put heroes and dig space for them
+  auto maybeClear = [&] (Vec2i pos)
     {
-      if(row < 0 || row >= state.ROWS)
+      if(pos.y < 0 || pos.y >= state.ROWS)
         return;
 
-      if(col < 0 || col >= state.COLS)
+      if(pos.x < 0 || pos.x >= state.COLS)
         return;
 
-      state.board[row][col] = 0;
+      state.board[pos.y][pos.x] = 0;
     };
 
-  auto clearCross = [&] (int row, int col)
+  auto clearCross = [&] (Vec2i pos)
     {
-      maybeClear(row - 2, col);
-      maybeClear(row - 1, col);
-      maybeClear(row, col);
-      maybeClear(row + 1, col);
-      maybeClear(row + 2, col);
-      maybeClear(row, col - 2);
-      maybeClear(row, col - 1);
-      maybeClear(row, col + 1);
-      maybeClear(row, col + 2);
+      maybeClear(pos + Vec2i{ -2, 0 });
+      maybeClear(pos + Vec2i{ -1, 0 });
+      maybeClear(pos + Vec2i{ 0, 0 });
+      maybeClear(pos + Vec2i{ +1, 0 });
+      maybeClear(pos + Vec2i{ +2, 0 });
+
+      maybeClear(pos + Vec2i{ 0, -2 });
+      maybeClear(pos + Vec2i{ 0, -1 });
+      maybeClear(pos + Vec2i{ 0, 0 });
+      maybeClear(pos + Vec2i{ 0, +1 });
+      maybeClear(pos + Vec2i{ 0, +2 });
     };
 
-  clearCross(0, 0);
-  clearCross(state.ROWS - 1, 0);
-  clearCross(state.ROWS - 1, state.COLS - 1);
-  clearCross(0, state.COLS - 1);
+  static const Vec2i startingPositions[MAX_HEROES] =
+  {
+    { 0, 0 },
+    { state.COLS - 1, 0 },
+    { state.COLS - 1, state.ROWS - 1 },
+    { 0, state.ROWS - 1 },
+  };
 
-  for(int i = 0; i < 0; ++i)
-    clearCross(rand() % state.ROWS, rand() % state.COLS);
+  for(int i = 0; i < 4; ++i)
+  {
+    state.heroes[i].enable = true;
+    state.heroes[i].maxbombs = 1;
+    state.heroes[i].pos = Vec2f(startingPositions[i].x, startingPositions[i].y);
+    state.heroes[i].walkspeed = 2;
+    state.heroes[i].flamelength = 2;
+
+    clearCross(startingPositions[i]);
+  }
 
   putRandomItems(state);
 
