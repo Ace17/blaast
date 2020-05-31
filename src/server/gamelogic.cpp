@@ -140,6 +140,48 @@ bool directMove(const GameLogicState& state, Vec2f& pos, Vec2f size, Vec2f delta
   return true;
 }
 
+void pickupItem(GameLogicState& state, GameLogicState::Hero& h, Vec2i roundPos)
+{
+  const int itemType = state.items[roundPos.y][roundPos.x];
+  switch(itemType)
+  {
+  case ITEM_DISEASE:
+    break;
+  case ITEM_KICK:
+    h.upgrades |= UPGRADE_KICK;
+    break;
+  case ITEM_FLAME:
+    h.flamelength = std::min(h.flamelength + 1, 15);
+    break;
+  case ITEM_PUNCH:
+    h.upgrades |= UPGRADE_PUNCH;
+    break;
+  case ITEM_SKATE:
+    h.walkspeed = std::min(h.walkspeed + 1, 15);
+    break;
+  case ITEM_BOMB:
+    h.maxbombs = std::min(h.maxbombs + 1, 15);
+    break;
+  case ITEM_TRIBOMB:
+    h.upgrades |= UPGRADE_TRIBOMB;
+    break;
+  case ITEM_GOLDFLAME:
+    h.flamelength = 15;
+    break;
+  case ITEM_EBOLA: break;
+  case ITEM_TRIGGER: break;
+  case ITEM_RANDOM: break;
+  case ITEM_JELLY:
+    h.upgrades |= UPGRADE_JELLY;
+    break;
+  case ITEM_GLOVE:
+    h.upgrades |= UPGRADE_GLOVE;
+    break;
+  }
+
+  state.items[roundPos.y][roundPos.x] = 0;
+}
+
 void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInputState inputs[MAX_HEROES])
 {
   auto activeBombCount = [&] (int heroIdx)
@@ -255,46 +297,7 @@ void updateHeroes(GameLogicState& state, const FlameCoverage& flames, PlayerInpu
 
     auto roundPos = round(h.pos);
 
-    {
-      const int itemType = state.items[roundPos.y][roundPos.x];
-      switch(itemType)
-      {
-      case ITEM_DISEASE:
-        break;
-      case ITEM_KICK:
-        h.upgrades |= UPGRADE_KICK;
-        break;
-      case ITEM_FLAME:
-        h.flamelength = std::min(h.flamelength + 1, 15);
-        break;
-      case ITEM_PUNCH:
-        h.upgrades |= UPGRADE_PUNCH;
-        break;
-      case ITEM_SKATE:
-        h.walkspeed = std::min(h.walkspeed + 1, 15);
-        break;
-      case ITEM_BOMB:
-        h.maxbombs = std::min(h.maxbombs + 1, 15);
-        break;
-      case ITEM_TRIBOMB:
-        h.upgrades |= UPGRADE_TRIBOMB;
-        break;
-      case ITEM_GOLDFLAME:
-        h.flamelength = 15;
-        break;
-      case ITEM_EBOLA: break;
-      case ITEM_TRIGGER: break;
-      case ITEM_RANDOM: break;
-      case ITEM_JELLY:
-        h.upgrades |= UPGRADE_JELLY;
-        break;
-      case ITEM_GLOVE:
-        h.upgrades |= UPGRADE_GLOVE;
-        break;
-      }
-
-      state.items[roundPos.y][roundPos.x] = 0;
-    }
+    pickupItem(state, h, roundPos);
 
     if(flames.inflames[roundPos.y][roundPos.x])
     {
