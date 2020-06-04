@@ -34,6 +34,7 @@ common.srcs:=\
 
 client.srcs:=\
 	src/client/app.cpp\
+	src/client/display.cpp\
 	src/client/main.cpp\
 	src/client/picloader.cpp\
 	src/client/packer.cpp\
