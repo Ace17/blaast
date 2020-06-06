@@ -182,7 +182,7 @@ Picture loadAtlasFromAniFiles(std::vector<const char*> pathes)
   return CreateAtlas(allPics);
 }
 
-intptr_t loadTextureFromFile(const char* filename, int width, int height)
+Picture loadRawTexture(const char* filename, int width, int height)
 {
   Picture pic;
   pic.size.x = width;
@@ -192,7 +192,7 @@ intptr_t loadTextureFromFile(const char* filename, int width, int height)
   InputFile fp(filename);
   fp.read(pic.pixels.data(), pic.pixels.size() * 4);
 
-  return display_createTexture(pic);
+  return pic;
 }
 
 void tesselateSprites(int atlasTexture)
@@ -246,8 +246,8 @@ void safeMain(Span<const String> args)
 
   SteamGuiImpl gui;
 
-  gui.whiteTexture = loadTextureFromFile("data/white.rgba", 2, 2);
-  gui.fontTexture = loadTextureFromFile("data/font_256x256.rgba", 256, 256);
+  gui.whiteTexture = display_createTexture(loadRawTexture("data/white.rgba", 2, 2));
+  gui.fontTexture = display_createTexture(loadRawTexture("data/font_256x256.rgba", 256, 256));
   const auto atlasTexture = display_createTexture(loadAtlasFromAniFiles(ANIMATIONS));
   const auto bgTexture = display_createTexture(decodePcx(loadFile("iso/data/res/field1.pcx")));
 
