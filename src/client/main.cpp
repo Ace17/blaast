@@ -238,6 +238,14 @@ void tesselateSprites(int atlasTexture)
   Stat("Sprites", g_Sprites.size());
   Stat("Bags for Sprites", bagCount);
 }
+
+Picture whitePicture()
+{
+  Picture r {};
+  r.size = { 1, 1 };
+  r.pixels.resize(1, { 0xff, 0xff, 0xff, 0xff });
+  return r;
+}
 }
 
 void safeMain(Span<const String> args)
@@ -246,7 +254,7 @@ void safeMain(Span<const String> args)
 
   SteamGuiImpl gui;
 
-  gui.whiteTexture = display_createTexture(loadRawTexture("data/white.rgba", 2, 2));
+  gui.whiteTexture = display_createTexture(whitePicture());
   gui.fontTexture = display_createTexture(loadRawTexture("data/font_256x256.rgba", 256, 256));
   const auto atlasTexture = display_createTexture(loadAtlasFromAniFiles(ANIMATIONS));
   const auto bgTexture = display_createTexture(decodePcx(loadFile("data/res/field1.pcx")));
