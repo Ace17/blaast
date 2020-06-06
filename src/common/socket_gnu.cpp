@@ -3,9 +3,9 @@
 #include <arpa/inet.h> // inet_addr
 #include <assert.h>
 #include <fcntl.h> // F_SETFL, O_NONBLOCK
-#include <unistd.h> // close
-#include <string.h> // memcpy
 #include <netdb.h> // addrinfo
+#include <string.h> // memcpy
+#include <unistd.h> // close
 
 #include <stdexcept>
 #include <string>

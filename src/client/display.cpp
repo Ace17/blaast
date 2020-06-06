@@ -1,8 +1,8 @@
 #include "display.h"
 
 #include <cassert>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #include "glad/glad.h"
 #include <SDL.h>

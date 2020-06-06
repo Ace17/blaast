@@ -9,6 +9,7 @@
 
 #include "app.h"
 #include "atlas.h"
+#include "display.h"
 #include "file.h"
 #include "picture.h"
 #include "span.h"
@@ -16,7 +17,6 @@
 #include "stats.h"
 #include "steamgui.h"
 #include "steamgui_impl.h"
-#include "display.h"
 
 std::vector<Sprite> g_Sprites;
 
