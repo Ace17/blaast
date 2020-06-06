@@ -219,16 +219,13 @@ void display_refresh()
 
 intptr_t display_createTexture(const Picture& pic)
 {
-  // Create a OpenGL texture identifier
   GLuint r;
   glGenTextures(1, &r);
   glBindTexture(GL_TEXTURE_2D, r);
 
-  // Setup filtering parameters for display
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  // Upload pixels into texture
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pic.size.x, pic.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic.pixels.data());
 
