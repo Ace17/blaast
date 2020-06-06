@@ -333,6 +333,13 @@ std::vector<uint8_t> loadFile(const char* path)
   FILE* fp = fopen(path, "rb");
 
   if(!fp)
+  {
+    std::string isoPath = "iso/";
+    isoPath += path;
+    fp = fopen(isoPath.c_str(), "rb");
+  }
+
+  if(!fp)
     throw std::runtime_error("Can't open file '" + std::string(path) + "' for reading");
 
   fseek(fp, 0, SEEK_END);
