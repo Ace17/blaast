@@ -182,15 +182,14 @@ Picture loadAtlasFromAniFiles(std::vector<const char*> pathes)
   return CreateAtlas(allPics);
 }
 
-Picture loadRawTexture(const char* filename, int width, int height)
+Picture loadRawTexture(const unsigned char* data, int width, int height)
 {
   Picture pic;
   pic.size.x = width;
   pic.size.y = height;
   pic.pixels.resize(height * width);
 
-  InputFile fp(filename);
-  fp.read(pic.pixels.data(), pic.pixels.size() * 4);
+  memcpy(pic.pixels.data(), data, pic.pixels.size() * 4);
 
   return pic;
 }
@@ -248,6 +247,8 @@ Picture whitePicture()
 }
 }
 
+extern unsigned char font_256x256[];
+
 void safeMain(Span<const String> args)
 {
   display_init();
@@ -255,7 +256,7 @@ void safeMain(Span<const String> args)
   SteamGuiImpl gui;
 
   gui.whiteTexture = display_createTexture(whitePicture());
-  gui.fontTexture = display_createTexture(loadRawTexture("data/font_256x256.rgba", 256, 256));
+  gui.fontTexture = display_createTexture(loadRawTexture(font_256x256, 256, 256));
   const auto atlasTexture = display_createTexture(loadAtlasFromAniFiles(ANIMATIONS));
   const auto bgTexture = display_createTexture(decodePcx(loadFile("data/res/field1.pcx")));
 

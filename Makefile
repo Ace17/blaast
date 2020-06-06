@@ -40,8 +40,15 @@ client.srcs:=\
 	src/client/packer.cpp\
 	src/client/scene_ingame.cpp\
 	src/client/scene_paused.cpp\
+	$(BIN)/font.cpp\
 	extra/glad/glad.cpp\
 	$(common.srcs)\
+
+$(BIN)/font.cpp: assets/font_256x256.rgba
+	@mkdir -p $(dir $@)
+	echo "unsigned char font_256x256[] = {" > $@
+	cat "$<" | xxd -i >> $@
+	echo "};" >> $@
 
 $(BIN)/client.exe: $(client.srcs:%=$(BIN)/%.o)
 TARGETS+=$(BIN)/client.exe
